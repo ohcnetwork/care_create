@@ -3,7 +3,7 @@ import pc from "picocolors";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "node:fs";
-import type { Command } from "commander";
+import { Option, type Command } from "commander";
 
 import registryJson from "../plugs.json" with { type: "json" };
 import type { BackendPlug, CreateManifest, FrontendPlug, PluginConfigEntry, Registry, Runtime } from "../types.js";
@@ -13,6 +13,8 @@ import { composeProjectName, keepEnvFilesOutOfImage, readEnvValue } from "../lib
 import { orchestrate } from "../lib/orchestrate.js";
 
 const registry = registryJson as unknown as Registry;
+
+const PLUG_NAMES = [...registry.backend, ...registry.frontend].map((plug) => plug.name);
 
 const CANCELLED = Symbol("cancelled");
 
@@ -27,6 +29,8 @@ function celeryBrokerFrom(redisUrl: string): string {
 interface CreateOptions {
   branch?: string;
   skipInstall?: boolean;
+  runtime?: Runtime;
+  plugs?: string;
 }
 
 export function registerCreateCommand(program: Command): void {
@@ -35,7 +39,32 @@ export function registerCreateCommand(program: Command): void {
     .description("Clone and bootstrap a full local CARE setup")
     .option("--branch <branch>", "override the branch used for the core care and care_fe repos")
     .option("--skip-install", "clone and configure only; skip building and starting services")
+    .addOption(
+      new Option("--runtime <runtime>", "run the backend services with docker or native instead of asking")
+        .choices(["docker", "native"]),
+    )
+    .option(
+      "--plugs <names>",
+      `comma-separated backend and frontend plugs to install instead of asking (${PLUG_NAMES.join(", ")}); "" for none`,
+    )
     .action((directory: string | undefined, options: CreateOptions) => createCommand(directory, options));
+}
+
+// The plugs named by --plugs, or undefined to ask. Unknown names stop the run before anything is cloned.
+function plugsFromOption(value: string | undefined): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const names = value
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const unknown = names.filter((name) => !PLUG_NAMES.includes(name));
+  if (unknown.length > 0) {
+    p.log.error(`Unknown plug(s): ${unknown.join(", ")}. Available: ${PLUG_NAMES.join(", ")}`);
+    process.exit(1);
+  }
+  return names;
 }
 
 function cancel(): never {
@@ -120,6 +149,8 @@ function remoteEntryUrl(plug: FrontendPlug): string {
 async function createCommand(directory: string | undefined, options: CreateOptions): Promise<void> {
   p.intro(pc.bgCyan(pc.black(" @ohcn/care create ")));
 
+  const requestedPlugs = plugsFromOption(options.plugs);
+
   const targetInput =
     directory ??
     (await p.text({
@@ -138,14 +169,16 @@ async function createCommand(directory: string | undefined, options: CreateOptio
     if (p.isCancel(proceed) || !proceed) return cancel();
   }
 
-  const runtime = await p.select({
-    message: "How do you want to run the backend services?",
-    options: [
-      { value: "docker", label: "Docker Compose", hint: "Postgres, Redis, MinIO, backend & celery" },
-      { value: "native", label: "Native", hint: "pipenv + local Postgres/Redis" },
-    ],
-    initialValue: "docker",
-  });
+  const runtime =
+    options.runtime ??
+    (await p.select({
+      message: "How do you want to run the backend services?",
+      options: [
+        { value: "docker", label: "Docker Compose", hint: "Postgres, Redis, MinIO, backend & celery" },
+        { value: "native", label: "Native", hint: "pipenv + local Postgres/Redis" },
+      ],
+      initialValue: "docker" as Runtime,
+    }));
   if (p.isCancel(runtime)) return cancel();
 
   let nativeServices: Record<string, string> = {};
@@ -172,18 +205,22 @@ async function createCommand(directory: string | undefined, options: CreateOptio
     };
   }
 
-  const backendSelection = await p.multiselect({
-    message: "Select backend plugs to install",
-    options: registry.backend.map((plug) => ({ value: plug.name, label: plug.name, hint: plug.description })),
-    required: false,
-  });
+  const backendSelection =
+    requestedPlugs ??
+    (await p.multiselect({
+      message: "Select backend plugs to install",
+      options: registry.backend.map((plug) => ({ value: plug.name, label: plug.name, hint: plug.description })),
+      required: false,
+    }));
   if (p.isCancel(backendSelection)) return cancel();
 
-  const frontendSelection = await p.multiselect({
-    message: "Select frontend plugs to install",
-    options: registry.frontend.map((plug) => ({ value: plug.name, label: plug.name, hint: plug.description })),
-    required: false,
-  });
+  const frontendSelection =
+    requestedPlugs ??
+    (await p.multiselect({
+      message: "Select frontend plugs to install",
+      options: registry.frontend.map((plug) => ({ value: plug.name, label: plug.name, hint: plug.description })),
+      required: false,
+    }));
   if (p.isCancel(frontendSelection)) return cancel();
 
   const selectedBackend = registry.backend.filter((plug) => backendSelection.includes(plug.name));

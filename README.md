@@ -23,11 +23,12 @@ npx @ohcn/care create
 
 ```bash
 care create              # or: care create ./care-platform
+care create ./care-abdm --runtime docker --plugs abdm,care_abdm_fe   # skip the runtime and plug questions
 ```
 
-1. Prompts for a target directory and runtime (Docker Compose or native).
+1. Prompts for a target directory and runtime (Docker Compose or native), unless they are passed.
 2. For the **native** runtime, prompts for the `DATABASE_URL` and `REDIS_URL` (with sensible localhost defaults) so you can point at your own Postgres/Redis; `CELERY_BROKER_URL` is derived from the Redis URL.
-3. Lets you pick backend and frontend plugs from a bundled registry ([`src/plugs.json`](src/plugs.json)).
+3. Lets you pick backend and frontend plugs from a bundled registry ([`src/plugs.json`](src/plugs.json)), unless `--plugs` names them.
 4. Prompts only for the environment variables each selected plug marks as `prompt`; everything else uses its `default`.
 5. Asks whether to populate the database with dummy data.
 6. Clones `care` and `care_fe` (plus the selected plug repos) at the branches defined in the registry.
@@ -43,6 +44,8 @@ care create              # or: care create ./care-platform
 | --- | --- |
 | `--branch <branch>` | Override the branch used for the core `care` and `care_fe` repos. |
 | `--skip-install` | Clone and configure only; skip building and starting services. |
+| `--runtime <docker\|native>` | Run the backend services with Docker Compose or natively, instead of being asked. |
+| `--plugs <names>` | Comma-separated backend and frontend plugs from the registry to install, instead of being asked (e.g. `abdm,care_abdm_fe`; `""` for none). Unknown names stop the run before anything is cloned. Each plug's `prompt` variables and the dummy-data question are still asked. |
 
 ## `care run`
 
