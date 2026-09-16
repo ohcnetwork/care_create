@@ -2,6 +2,7 @@ import { execa } from "execa";
 import pc from "picocolors";
 
 import type { PluginConfigEntry, Runtime } from "../types.js";
+import { buildArgPlugs } from "./backend.js";
 import { nativeBuildEnv } from "./native.js";
 
 const COMPOSE_FILES = ["-f", "docker-compose.yaml", "-f", "docker-compose.local.yaml"];
@@ -139,11 +140,13 @@ async function dockerUp(
   pluginConfigs: PluginConfigEntry[],
   warnings: string[],
 ): Promise<void> {
+  const buildEnv = { ADDITIONAL_PLUGS: buildArgPlugs(additionalPlugs) };
+
   step("Building backend images (this can take a while)");
-  await run("docker", ["compose", ...COMPOSE_FILES, "build"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
+  await run("docker", ["compose", ...COMPOSE_FILES, "build"], cwd, buildEnv);
 
   step("Starting services");
-  await run("docker", ["compose", ...COMPOSE_FILES, "up", "-d"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
+  await run("docker", ["compose", ...COMPOSE_FILES, "up", "-d"], cwd, buildEnv);
 
   await makeEditable("docker", cwd, plugPackages, warnings);
 

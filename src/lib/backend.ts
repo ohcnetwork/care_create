@@ -5,8 +5,30 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 
 import type { CreateManifest, Runtime } from "../types.js";
+import { appendMissingLines } from "./env.js";
 
 export const COMPOSE_FILES = ["-f", "docker-compose.yaml", "-f", "docker-compose.local.yaml"];
+
+// care's dev.Dockerfile bakes the ADDITIONAL_PLUGS build arg into the image's ENV. Installing plugs only needs the list, so
+// drop their configs, which can hold secrets (e.g. ABDM credentials); containers read the full value from docker/.local.env.
+export function buildArgPlugs(additionalPlugs: string): string {
+  if (!additionalPlugs) {
+    return "";
+  }
+  try {
+    const plugs = JSON.parse(additionalPlugs) as Record<string, unknown>[];
+    return JSON.stringify(plugs.map(({ configs: _configs, ...plug }) => plug));
+  } catch {
+    // care skips an ADDITIONAL_PLUGS it can't parse, so passing nothing builds the same image without the secrets.
+    return "";
+  }
+}
+
+// dev.Dockerfile also copies the whole backend dir into the image, and care's .dockerignore doesn't exclude the env files
+// this CLI writes plug configs to.
+export async function keepEnvFilesOutOfImage(backendPath: string): Promise<void> {
+  await appendMissingLines(path.join(backendPath, ".dockerignore"), [".env", "docker/.local.env"]);
+}
 
 // Compose defaults the project name to the backend dir ("care"), so every care checkout would share one set of
 // volumes (care_postgres-data, ...). Derive a name unique to this setup instead.

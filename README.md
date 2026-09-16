@@ -31,7 +31,7 @@ care create              # or: care create ./care-platform
 4. Prompts only for the environment variables each selected plug marks as `prompt`; everything else uses its `default`.
 5. Asks whether to populate the database with dummy data.
 6. Clones `care` and `care_fe` (plus the selected plug repos) at the branches defined in the registry.
-7. Configures backend plugs via `ADDITIONAL_PLUGS` (their env lands in each plug's `configs`), and writes `care_fe/.env.local`. For Docker, it also pins a unique `COMPOSE_PROJECT_NAME` in `care/.env`, so the setup's containers and volumes never collide with another `care` checkout's (Compose would otherwise name them all `care`); manual `docker compose`/`make` commands run in `care/` pick it up too.
+7. Configures backend plugs via `ADDITIONAL_PLUGS` (their env lands in each plug's `configs`), and writes `care_fe/.env.local`. For Docker, it also pins a unique `COMPOSE_PROJECT_NAME` in `care/.env`, so the setup's containers and volumes never collide with another `care` checkout's (Compose would otherwise name them all `care`); manual `docker compose`/`make` commands run in `care/` pick it up too. Plug configs (which can hold secrets such as ABDM credentials) stay out of the backend image: the `ADDITIONAL_PLUGS` build arg carries only the plug list, and `.env` and `docker/.local.env` are added to `care/.dockerignore`, since the image copies the whole checkout.
 8. Builds and starts the services, makes backend plugs editable, runs migrations, syncs permissions/valuesets, optionally loads fixtures, and registers frontend plugin configs.
 9. Writes a `.care-create.json` manifest so the other commands know the layout.
 
@@ -69,7 +69,7 @@ care sync              # or: care update ./care-platform
 ```
 
 - `git pull --ff-only` on every repo (core `care`, `care_fe`, and each plug). Repos with local changes are skipped with a warning; the rest continue.
-- Updates backend dependencies and re-installs plugs editable (docker rebuilds with `--build`; native runs `pipenv install`).
+- Updates backend dependencies and re-installs plugs editable (docker rebuilds with `--build`, keeping plug configs out of the image as `create` does; native runs `pipenv install`).
 - Runs migrations and syncs permissions/valuesets.
 - Runs `npm install` for the frontend and each frontend plug.
 

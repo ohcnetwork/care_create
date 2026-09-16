@@ -9,7 +9,7 @@ import registryJson from "../plugs.json" with { type: "json" };
 import type { BackendPlug, CreateManifest, FrontendPlug, PluginConfigEntry, Registry, Runtime } from "../types.js";
 import { cloneRepo, pullRepo } from "../lib/git.js";
 import { upsertEnv, copyIfMissing } from "../lib/env.js";
-import { composeProjectName, readEnvValue } from "../lib/backend.js";
+import { composeProjectName, keepEnvFilesOutOfImage, readEnvValue } from "../lib/backend.js";
 import { orchestrate } from "../lib/orchestrate.js";
 
 const registry = registryJson as unknown as Registry;
@@ -304,6 +304,7 @@ async function createCommand(directory: string | undefined, options: CreateOptio
           (await readEnvValue(backendEnvPath, "COMPOSE_PROJECT_NAME")) || composeProjectName(targetPath),
       });
       await upsertEnv(path.join(backendPath, "docker", ".local.env"), backendValues);
+      await keepEnvFilesOutOfImage(backendPath);
     } else {
       await upsertEnv(backendEnvPath, { ...nativeServices, ...backendValues });
     }

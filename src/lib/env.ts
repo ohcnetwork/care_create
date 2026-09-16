@@ -39,3 +39,15 @@ export async function copyIfMissing(src: string, dest: string): Promise<void> {
   }
   await fs.copyFile(src, dest);
 }
+
+// Append whichever of the given lines a file doesn't already have, creating it if needed.
+export async function appendMissingLines(filePath: string, lines: string[]): Promise<void> {
+  const content = existsSync(filePath) ? await fs.readFile(filePath, "utf8") : "";
+  const existing = new Set(content.split("\n").map((line) => line.trim()));
+  const missing = lines.filter((line) => !existing.has(line));
+  if (missing.length === 0) {
+    return;
+  }
+  const separator = content === "" || content.endsWith("\n") ? "" : "\n";
+  await fs.writeFile(filePath, `${content}${separator}${missing.join("\n")}\n`);
+}
