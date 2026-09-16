@@ -52,7 +52,7 @@ Run from the target directory (or pass it as an argument) to launch every dev se
 care run              # or: care run ./care-platform
 ```
 
-- Brings up the backend (docker `up -d`, or `runserver` for native).
+- Brings up the backend (docker `up -d`, or `runserver` plus a Celery worker for native, restarted on code changes like care's `scripts/celery-dev.sh`).
 - Starts the `care_fe` dev server (http://localhost:4000).
 - Starts each selected frontend plug's dev server (e.g. http://localhost:5173).
 - Installs npm dependencies for any target missing `node_modules`.

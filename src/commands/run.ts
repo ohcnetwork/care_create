@@ -6,9 +6,15 @@ import { execa, type ResultPromise } from "execa";
 import type { Command } from "commander";
 
 import type { CreateManifest } from "../types.js";
-import { COMPOSE_FILES, readManifest } from "../lib/backend.js";
+import { COMPOSE_FILES, nativeManageEnv, readManifest } from "../lib/backend.js";
 
 const PREFIX_COLORS = [pc.cyan, pc.green, pc.magenta, pc.yellow, pc.blue, pc.red];
+
+// Mirrors care's scripts/celery-dev.sh, which restarts the worker on code changes like runserver does. Celery's default
+// prefork pool doesn't run on Windows.
+const CELERY_WORKER = `celery -A config.celery_app worker -B --loglevel=INFO${
+  process.platform === "win32" ? " --pool=solo" : ""
+}`;
 
 interface Task {
   name: string;
@@ -88,7 +94,14 @@ async function runCommand(directory: string | undefined): Promise<void> {
       name: "backend",
       cwd: backendPath,
       command: "pipenv run python manage.py runserver 0.0.0.0:9000",
-      env: { DJANGO_SETTINGS_MODULE: "config.settings.local", DJANGO_READ_DOT_ENV_FILE: "true" },
+      env: nativeManageEnv(),
+    });
+    // Background work (e.g. abdm's gateway callbacks and care-context linking) only runs in a worker; docker has its own.
+    tasks.push({
+      name: "celery",
+      cwd: backendPath,
+      command: `pipenv run watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- ${CELERY_WORKER}`,
+      env: nativeManageEnv(),
     });
   }
 
