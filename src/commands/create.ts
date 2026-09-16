@@ -287,7 +287,8 @@ async function createCommand(directory: string | undefined, options: CreateOptio
     spinner.start("Writing configuration");
 
     const backendValues: Record<string, string> = {
-      DJANGO_DEBUG: seedData ? "true" : "false",
+      // A development setup, whether or not it is seeded now: care's load_fixtures (`care db populate`) needs DEBUG.
+      DJANGO_DEBUG: "true",
       ...(additionalPlugs ? { ADDITIONAL_PLUGS: additionalPlugs } : {}),
     };
 
