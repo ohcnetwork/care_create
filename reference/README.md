@@ -17,19 +17,19 @@ Needs Docker with Compose 2.37 or later (tested with Docker Desktop 28). Pass yo
 macOS:
 
 ```bash
-ABDM_CLIENT_ID='YOUR_CLIENT_ID' ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET' docker compose -f https://github.com/amjithtitus09/care_create.git#reference:reference/compose.yaml up --build --wait --yes && open http://localhost:4400
+ABDM_CLIENT_ID='YOUR_CLIENT_ID' ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET' docker compose -f https://github.com/ohcnetwork/care_create.git#reference:reference/compose.yaml up --build --wait --yes && open http://localhost:4400
 ```
 
 Linux:
 
 ```bash
-ABDM_CLIENT_ID='YOUR_CLIENT_ID' ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET' docker compose -f https://github.com/amjithtitus09/care_create.git#reference:reference/compose.yaml up --build --wait --yes && xdg-open http://localhost:4400
+ABDM_CLIENT_ID='YOUR_CLIENT_ID' ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET' docker compose -f https://github.com/ohcnetwork/care_create.git#reference:reference/compose.yaml up --build --wait --yes && xdg-open http://localhost:4400
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:ABDM_CLIENT_ID='YOUR_CLIENT_ID'; $env:ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET'; docker compose -f https://github.com/amjithtitus09/care_create.git#reference:reference/compose.yaml up --build --wait --yes; if ($LASTEXITCODE -eq 0) { Start-Process http://localhost:4400 }
+$env:ABDM_CLIENT_ID='YOUR_CLIENT_ID'; $env:ABDM_CLIENT_SECRET='YOUR_CLIENT_SECRET'; docker compose -f https://github.com/ohcnetwork/care_create.git#reference:reference/compose.yaml up --build --wait --yes; if ($LASTEXITCODE -eq 0) { Start-Process http://localhost:4400 }
 ```
 
 `--wait` holds the command until CARE is ready, then http://localhost:4400 opens in your browser. Sign in as the superuser `admin` with the password `admin`. CARE's other demo users, such as `care-doctor` and `care-nurse`, have the password `Ohcn@123`.
