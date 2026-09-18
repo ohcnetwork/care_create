@@ -1,5 +1,5 @@
 # CARE with the care-abdm plug, built from source on every `up --build`: care and care_fe from
-# their latest develop, and care-abdm pinned to 2df14d7 (M1) until its migrations match care develop.
+# their latest develop, and care-abdm at a94088c, the latest commit on its main.
 # Usage is in README.md next to this file.
 name: care-reference
 
@@ -134,12 +134,11 @@ services:
     <<: *backend
     build:
       # care's own production Dockerfile, run on the latest develop. It pip installs the plugs in
-      # ADDITIONAL_PLUGS: care-abdm at the commit whose migrations match care develop.
       context: https://github.com/ohcnetwork/care.git#develop
       dockerfile: docker/prod.Dockerfile
       pull: true
       args:
-        ADDITIONAL_PLUGS: '[{"name":"abdm","package_name":"git+https://github.com/ohcnetwork/care-abdm.git@2df14d776818ce98ac82a4b70e68b1aff77b9980#subdirectory=backend","version":""}]'
+        ADDITIONAL_PLUGS: '[{"name":"abdm","package_name":"git+https://github.com/ohcnetwork/care-abdm.git@main#subdirectory=backend","version":""}]'
     pull_policy: build
     entrypoint: ["bash", "reference-entrypoint.sh", "start.sh"]
     healthcheck: *slow-start
@@ -174,7 +173,7 @@ services:
       args:
         CARE_API_URL: http://localhost:${REFERENCE_PORT:-4400}
         # Keep in step with care-abdm's commit in the api build.
-        CARE_ABDM_REF: 2df14d776818ce98ac82a4b70e68b1aff77b9980
+        CARE_ABDM_REF: main
     restart: unless-stopped
     ports:
       - "${REFERENCE_PORT:-4400}:80"

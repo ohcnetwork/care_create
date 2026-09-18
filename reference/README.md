@@ -6,9 +6,7 @@ Runs CARE with the [care-abdm](https://github.com/ohcnetwork/care-abdm) plug usi
 | --- | --- |
 | CARE backend | care `develop`, built with care's own `docker/prod.Dockerfile` |
 | CARE frontend | care_fe `develop` |
-| ABDM plug | care-abdm `2df14d7` (`backend/` and `frontend/`) |
-
-care-abdm is pinned because its newer commits need CARE migrations that aren't on care `develop` yet. The commit appears twice in `compose.yaml`, in the api and web build args.
+| ABDM plug | care-abdm `main` (`backend/` and `frontend/`) |
 
 ## Run
 
@@ -38,7 +36,14 @@ The first run downloads and builds everything from source, which takes about 10 
 
 ## Milestones
 
-M1 runs by default. For M2, add `--profile m2` before `up`. It opens a public HTTPS tunnel for ABDM callbacks and sets it as the plug's callback URL. Only `/api/abdm/` is reachable through the tunnel. Register the URL as the bridge URL from a facility's ABDM setup page. The tunnel URL changes on every run.
+M1 runs by default. For M2, add `--profile m2` before `up`. It opens a public HTTPS tunnel for ABDM callbacks and sets it as the plug's callback URL. Only `/api/abdm/` is reachable through the tunnel. The tunnel URL changes on every run, so both steps below have to be repeated after each run.
+
+Then, signed in as `admin`:
+
+1. Admin sidebar → **ABDM** (`/admin/abdm`) → **Register callback URL**. The bridge URL is one per ABDM client ID, so this is instance level.
+2. A facility → ABDM setup (`/facility/<id>/abdm/setup`) → fill the HFR facility ID and names → **Register HRP service**. ABDM issues the service ID (for example `IN1410000232_1`) that the plug sends as `X-HIP-ID`; without it the gateway accepts calls but never delivers their callbacks.
+
+The api and celery-worker containers read the tunnel URL once, at start. Re-running `up` on a live stack leaves them on the old URL, so stop the stack first (`docker compose -p care-reference down`, without `-v` to keep the data) and start it again.
 
 To use your own public URL instead of the tunnel, set `ABDM_CALLBACK_BASE_URL` and leave out `--profile m2`.
 
