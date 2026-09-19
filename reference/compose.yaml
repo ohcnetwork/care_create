@@ -1,5 +1,8 @@
-# CARE with the care-abdm plug, built from source on every `up --build`: care and care_fe from
-# their latest develop, and care-abdm at a94088c, the latest commit on its main.
+# CARE with the care-abdm plug, built from source on every `up --build`: care_fe from its latest
+# develop, care-abdm at the latest commit on its main, and care from a temporary fix branch off
+# develop (PR ohcnetwork/care#3761) that registers the emr report models, so the abdm plug's
+# ReportUpload signal (ADR-013) does not trigger fields.E300 at startup. Revert care to #develop
+# once that PR merges.
 # Usage is in README.md next to this file.
 name: care-reference
 
@@ -133,8 +136,11 @@ services:
   api:
     <<: *backend
     build:
-      # care's own production Dockerfile, run on the latest develop. It pip installs the plugs in
-      context: https://github.com/ohcnetwork/care.git#develop
+      # care's own production Dockerfile. Temporarily built from a fix branch (PR ohcnetwork/care#3761)
+      # instead of develop; it registers the emr report models so the abdm plug does not fail the model
+      # system check (fields.E300). Revert to #develop once the PR merges. Installs plugs from the
+      # ADDITIONAL_PLUGS build arg below.
+      context: https://github.com/ohcnetwork/care.git#amjithtitus/register-emr-report-models
       dockerfile: docker/prod.Dockerfile
       pull: true
       args:
