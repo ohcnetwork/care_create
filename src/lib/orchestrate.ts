@@ -3,8 +3,7 @@ import pc from "picocolors";
 
 import type { PluginConfigEntry, Runtime } from "../types.js";
 import { nativeBuildEnv } from "./native.js";
-
-const COMPOSE_FILES = ["-f", "docker-compose.yaml", "-f", "docker-compose.local.yaml"];
+import { composeFiles } from "./backend.js";
 
 const PLUG_CONFIG_SCRIPT = `import json, os
 from care.users.models import PlugConfig
@@ -104,7 +103,7 @@ async function makeEditable(
   }
   if (runtime === "docker") {
     try {
-      await run("docker", ["compose", ...COMPOSE_FILES, "restart", "backend", "celery"], cwd);
+      await run("docker", ["compose", ...composeFiles(cwd), "restart", "backend", "celery"], cwd);
     } catch (error) {
       warnings.push(`Could not restart services after editable install: ${message(error)}`);
     }
@@ -140,10 +139,10 @@ async function dockerUp(
   warnings: string[],
 ): Promise<void> {
   step("Building backend images (this can take a while)");
-  await run("docker", ["compose", ...COMPOSE_FILES, "build"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
+  await run("docker", ["compose", ...composeFiles(cwd), "build"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
 
   step("Starting services");
-  await run("docker", ["compose", ...COMPOSE_FILES, "up", "-d"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
+  await run("docker", ["compose", ...composeFiles(cwd), "up", "-d"], cwd, { ADDITIONAL_PLUGS: additionalPlugs });
 
   await makeEditable("docker", cwd, plugPackages, warnings);
 
@@ -151,8 +150,8 @@ async function dockerUp(
   await retry(() => backendExec(cwd, ["python", "manage.py", "migrate"]));
 
   step("Syncing permissions and valuesets");
-  await backendExec(cwd, ["python", "manage.py", "sync_permissions_roles"]);
-  await backendExec(cwd, ["python", "manage.py", "sync_valueset"]);
+  await retry(() => backendExec(cwd, ["python", "manage.py", "sync_permissions_roles"]));
+  await retry(() => backendExec(cwd, ["python", "manage.py", "sync_valueset"]));
 
   if (seedData) {
     step("Loading dummy data");

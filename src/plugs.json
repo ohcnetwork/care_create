@@ -23,7 +23,6 @@
       "env": [
         { "key": "ABDM_CLIENT_ID", "prompt": true, "secret": true, "description": "ABDM sandbox client id" },
         { "key": "ABDM_CLIENT_SECRET", "prompt": true, "secret": true, "description": "ABDM sandbox client secret" },
-        { "key": "BACKEND_DOMAIN", "prompt": true, "description": "Publicly reachable backend URL for ABDM callbacks" },
         { "key": "ABDM_ABHA_URL", "default": "https://abhasbx.abdm.gov.in/abha/api" },
         { "key": "ABDM_GATEWAY_URL", "default": "https://dev.abdm.gov.in/api/hiecm" },
         { "key": "ABDM_FACILITY_URL", "default": "https://facilitysbx.abdm.gov.in" },

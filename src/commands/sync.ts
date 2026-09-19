@@ -6,7 +6,7 @@ import { execa } from "execa";
 import type { Command } from "commander";
 
 import type { CreateManifest, Runtime } from "../types.js";
-import { COMPOSE_FILES, readEnvValue, readManifest, runBackend, runManage } from "../lib/backend.js";
+import { composeFiles, readEnvValue, readManifest, runBackend, runManage } from "../lib/backend.js";
 import { pullRepo } from "../lib/git.js";
 import { nativeBuildEnv } from "../lib/native.js";
 
@@ -53,7 +53,7 @@ async function bringUpBackend(
   if (runtime === "docker") {
     const additionalPlugs = await readEnvValue(path.join(backendPath, "docker", ".local.env"), "ADDITIONAL_PLUGS");
     p.log.step("Rebuilding and starting backend services (docker)");
-    await execa("docker", ["compose", ...COMPOSE_FILES, "up", "-d", "--build"], {
+    await execa("docker", ["compose", ...composeFiles(backendPath), "up", "-d", "--build"], {
       cwd: backendPath,
       stdio: "inherit",
       env: { ...process.env, ...(additionalPlugs ? { ADDITIONAL_PLUGS: additionalPlugs } : {}) },

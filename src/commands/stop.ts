@@ -4,7 +4,7 @@ import path from "node:path";
 import { execa } from "execa";
 import type { Command } from "commander";
 
-import { COMPOSE_FILES, readManifest } from "../lib/backend.js";
+import { composeFiles, readManifest } from "../lib/backend.js";
 
 interface StopOptions {
   volumes?: boolean;
@@ -75,7 +75,7 @@ async function stopCommand(directory: string | undefined, options: StopOptions):
 
     if (manifest.runtime === "docker") {
       const backendPath = path.join(targetPath, manifest.backendDir);
-      const args = ["compose", ...COMPOSE_FILES, "down"];
+      const args = ["compose", ...composeFiles(backendPath), "down"];
       if (options.volumes) {
         args.push("--volumes");
       }

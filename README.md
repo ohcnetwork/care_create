@@ -34,6 +34,7 @@ care create              # or: care create ./care-platform
 7. Configures backend plugs via `ADDITIONAL_PLUGS` (their env lands in each plug's `configs`), and writes `care_fe/.env.local`. For Docker, it also pins a unique `COMPOSE_PROJECT_NAME` in `care/.env`, so the setup's containers and volumes never collide with another `care` checkout's (Compose would otherwise name them all `care`); manual `docker compose`/`make` commands run in `care/` pick it up too.
 8. Builds and starts the services, makes backend plugs editable, runs migrations, syncs permissions/valuesets, optionally loads fixtures, and registers frontend plugin configs.
 9. Writes a `.care-create.json` manifest so the other commands know the layout.
+10. **ABDM plug (Docker runtime):** writes a `docker-compose.tunnel.yaml` override that adds a [`cloudflare/cloudflared`](https://hub.docker.com/r/cloudflare/cloudflared) service exposing the backend through a public quick tunnel. That service shares the stack's lifecycle (started by `up`, removed by `down`), so no `cloudflared` binary is needed on the host. Once it's up, the CLI reads the public URL from the tunnel container's logs, sets `BACKEND_DOMAIN` to it, recreates the backend, and registers the ABDM callback (session + update-bridge APIs). For the native runtime this is deferred to `care run` (the native backend isn't started by `create`).
 
 **Re-running `create` is safe (resumable/hybrid).** Existing clones are reused and fast-forwarded (`git pull --ff-only`), anything missing is cloned, and configuration + bring-up run again. Local changes that block a fast-forward are reported as warnings rather than aborting the run.
 
@@ -57,6 +58,10 @@ care run              # or: care run ./care-platform
 - Starts each selected frontend plug's dev server (e.g. http://localhost:5173).
 - Installs npm dependencies for any target missing `node_modules`.
 - Each server's dev command comes from `devCommand` in the registry/manifest (defaults to `npm run dev`), and output is streamed with a colored `[name]` prefix.
+- **ABDM plug:** exposes the backend through a public cloudflare quick tunnel and repoints the ABDM gateway's callback (gateway session API followed by the update-bridge API), writing the public URL to `BACKEND_DOMAIN`.
+  - **Docker:** the tunnel runs as a `cloudflared` compose service (added by `docker-compose.tunnel.yaml`), so it comes up with the stack and is torn down by `care stop`—no host binary required.
+  - **Native:** the tunnel runs as a host [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) subprocess that stays alive with the dev servers (requires the `cloudflared` binary on your `PATH`).
+  - If credentials aren't set (or, for native, `cloudflared` is missing) the step is skipped with a warning.
 
 Press `Ctrl+C` to stop the dev servers.
 
@@ -103,6 +108,7 @@ care stop --volumes    # docker only: also remove volumes (wipes DB + storage)
 - Git
 - Docker + Docker Compose (for the Docker runtime), or pipenv + local Postgres/Redis (for native)
 - Native runtime only: a C toolchain and **GMP** are required for plugs that build `fastecdsa` from source (e.g. `abdm`). The CLI auto-detects GMP and warns with install hints if it's missing — macOS: `brew install gmp`; Debian/Ubuntu: `sudo apt install libgmp-dev`; Fedora/RHEL: `sudo dnf install gmp-devel`. On Windows, use the Docker runtime (or WSL) for such plugs.
+- `abdm` plug on the **native** runtime only: the [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) binary on your `PATH`, used to expose the backend through a public tunnel and register the ABDM callback URL (skipped with a warning if absent). On the Docker runtime the tunnel runs as a `cloudflared` container, so no host binary is needed.
 
 
 ## The plugs registry

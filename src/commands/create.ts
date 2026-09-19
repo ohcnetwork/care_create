@@ -11,6 +11,8 @@ import { cloneRepo, pullRepo } from "../lib/git.js";
 import { upsertEnv, copyIfMissing } from "../lib/env.js";
 import { composeProjectName, readEnvValue } from "../lib/backend.js";
 import { orchestrate } from "../lib/orchestrate.js";
+import { writeTunnelComposeFile } from "../lib/tunnel.js";
+import { setupDockerAbdmCallback } from "../lib/abdm.js";
 
 const registry = registryJson as unknown as Registry;
 
@@ -115,6 +117,31 @@ function backendPlugPackage(plug: BackendPlug, runtime: Runtime, backendPath: st
 
 function remoteEntryUrl(plug: FrontendPlug): string {
   return plug.remoteEntryUrl ?? (plug.devUrl ? `http://${plug.devUrl}/assets/remoteEntry.js` : "");
+}
+
+async function configureAbdmTunnel(
+  runtime: Runtime,
+  backendPath: string,
+  installedBackend: BackendPlug[],
+  warnings: string[],
+): Promise<void> {
+  if (!installedBackend.some((plug) => plug.name === "abdm")) {
+    return;
+  }
+
+  if (runtime !== "docker") {
+    p.log.info("Run `care run` to expose the backend via a tunnel and register the ABDM callback URL.");
+    return;
+  }
+
+  try {
+    await setupDockerAbdmCallback(backendPath, {
+      step: (msg) => p.log.step(msg),
+      info: (msg) => p.log.info(msg),
+    });
+  } catch (error) {
+    warnings.push(`ABDM tunnel setup failed: ${message(error)}`);
+  }
 }
 
 async function createCommand(directory: string | undefined, options: CreateOptions): Promise<void> {
@@ -303,6 +330,9 @@ async function createCommand(directory: string | undefined, options: CreateOptio
           (await readEnvValue(backendEnvPath, "COMPOSE_PROJECT_NAME")) || composeProjectName(targetPath),
       });
       await upsertEnv(path.join(backendPath, "docker", ".local.env"), backendValues);
+      if (installedBackend.some((plug) => plug.name === "abdm")) {
+        await writeTunnelComposeFile(backendPath);
+      }
     } else {
       await upsertEnv(backendEnvPath, { ...nativeServices, ...backendValues });
     }
@@ -372,7 +402,10 @@ async function createCommand(directory: string | undefined, options: CreateOptio
     process.exit(1);
   }
 
+  await configureAbdmTunnel(runtime as Runtime, backendPath, installedBackend, warnings);
+
   reportWarnings(warnings);
+
   p.note(
     [
       `${pc.bold("Start dev servers")}  cd ${path.relative(process.cwd(), targetPath) || "."} && care run`,
@@ -382,6 +415,7 @@ async function createCommand(directory: string | undefined, options: CreateOptio
     ].join("\n"),
     "Your CARE setup is ready",
   );
+
   p.outro(pc.green("Done."));
 }
 

@@ -8,8 +8,16 @@ import type { CreateManifest, Runtime } from "../types.js";
 
 export const COMPOSE_FILES = ["-f", "docker-compose.yaml", "-f", "docker-compose.local.yaml"];
 
-// Compose defaults the project name to the backend dir ("care"), so every care checkout would share one set of
-// volumes (care_postgres-data, ...). Derive a name unique to this setup instead.
+export const TUNNEL_COMPOSE_FILE = "docker-compose.tunnel.yaml";
+
+export function composeFiles(backendPath: string): string[] {
+  const files = [...COMPOSE_FILES];
+  if (existsSync(path.join(backendPath, TUNNEL_COMPOSE_FILE))) {
+    files.push("-f", TUNNEL_COMPOSE_FILE);
+  }
+  return files;
+}
+
 export function composeProjectName(targetPath: string): string {
   const slug = path.basename(targetPath).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^[-_]+|[-_]+$/g, "");
   const hash = createHash("sha256").update(targetPath).digest("hex").slice(0, 8);
