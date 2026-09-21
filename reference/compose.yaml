@@ -143,6 +143,9 @@ services:
       context: https://github.com/ohcnetwork/care.git#amjithtitus/register-emr-report-models
       dockerfile: docker/prod.Dockerfile
       pull: true
+      # pip installs the plug from a moving branch, which BuildKit would otherwise cache forever and
+      # serve a commit older than the frontend's. Costs a full dependency install on every build.
+      no_cache: true
       args:
         ADDITIONAL_PLUGS: '[{"name":"abdm","package_name":"git+https://github.com/ohcnetwork/care-abdm.git@main#subdirectory=backend","version":""}]'
     pull_policy: build
