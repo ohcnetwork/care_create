@@ -15,10 +15,11 @@ FROM node:22-bookworm-slim AS care-abdm-fe
 ARG CARE_ABDM_REF=main
 ADD https://github.com/ohcnetwork/care-abdm.git#${CARE_ABDM_REF} /src
 WORKDIR /src/frontend
-# Built under /abdm/ so its assets don't collide with care_fe's /assets/ on the same origin.
-RUN npm ci --ignore-scripts && npx tsc -b && npx vite build --base=/abdm/
+# Under /plugs/abdm/ so the files collide neither with care_fe's /assets/ nor with the /abdm/
+# routes the plug adds to care_fe.
+RUN npm ci --ignore-scripts && npx tsc -b && npx vite build --base=/plugs/abdm/
 
 FROM nginx:stable-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=care-fe /app/build /usr/share/nginx/html
-COPY --from=care-abdm-fe /src/frontend/dist /usr/share/nginx/abdm
+COPY --from=care-abdm-fe /src/frontend/dist /usr/share/nginx/plugs/abdm

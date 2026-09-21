@@ -11,14 +11,15 @@ from care.users.models import PlugConfig
 if not get_user_model().objects.filter(username="care-admin").exists():
     call_command("load_fixtures")
 
-# The web container serves the plug under /abdm/. care_fe loads it from url and its
-# translations from localPath; without localPath it reads /locale/, care_fe's own.
+# The web container serves the plug's files under /plugs/abdm/, clear of the /abdm/ routes it
+# adds to care_fe. care_fe loads it from url and its translations from localPath; without
+# localPath it reads /locale/, care_fe's own.
 PlugConfig.objects.update_or_create(
     slug="abdm",
     defaults={
         "meta": {
-            "url": f"{os.environ['REFERENCE_URL']}/abdm/assets/remoteEntry.js",
-            "localPath": "/abdm",
+            "url": f"{os.environ['REFERENCE_URL']}/plugs/abdm/assets/remoteEntry.js",
+            "localPath": "/plugs/abdm",
             "name": "care_abdm_fe",
             "plug": "abdm",
         }
