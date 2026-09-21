@@ -9,7 +9,13 @@ WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm install --ignore-scripts && npm run postinstall
 ARG CARE_API_URL=http://localhost:4400
-RUN REACT_CARE_API_URL="${CARE_API_URL}" npm run build
+# Core components a plug may replace. Only listed ones get the override wrapper at build time,
+# so this must name every `overrides[].component` from the plugs built below — AddFacilitySheet
+# is care-abdm's (ADR-016). Unknown names fail the build.
+ARG MFE_REGISTERED_COMPONENTS=AddFacilitySheet
+RUN REACT_CARE_API_URL="${CARE_API_URL}" \
+  REACT_MFE_REGISTERED_COMPONENTS="${MFE_REGISTERED_COMPONENTS}" \
+  npm run build
 
 FROM node:22-bookworm-slim AS care-abdm-fe
 ARG CARE_ABDM_REF=main
